@@ -1,12 +1,13 @@
 import docker
 import concurrent.futures
+import csv
 import json
 from os import system
 from time import sleep
 
 
-def api_call_loop(container):
-    with open(f'./stats/{container}_stats.log', 'w') as stats_file:
+def log_summary(container):
+    with open(f'./stats/{container}_stats.csv', 'w') as stats_file:
         stats_file.write("datetime;container_name;CPU%;MEM usage;MEM %;NET IN;NET OUT;BLOCK IN;BLOCK OUT\n")
         while True:
             stats = client.api.stats(container=container, decode=None, stream=False, one_shot=False)
@@ -14,10 +15,55 @@ def api_call_loop(container):
             block_in, block_out = block_io(stats)
             net_in, net_out = network_io(stats)
             stats_file.write(f"{datetime};{container};{calculateCPUPercentUnix(stats)};{stats['memory_stats']['usage']};{calculate_memory_perc(stats)};{net_in};{net_out};{block_in};{block_out}\n")
-            # json_formatted_str = json.dumps(stats, indent=2)
-            # stats_file.write(json_formatted_str)
-            # stats_file.write(f"{stats}\n")
             stats_file.flush()
+
+
+def log_raw(container):
+    with open(f'./stats/{container}_stats.log', 'w') as stats_file:
+        stats_file.write("datetime;container_name;CPU%;MEM usage;MEM %;NET IN;NET OUT;BLOCK IN;BLOCK OUT\n")
+        while True:
+            stats = client.api.stats(container=container, decode=None, stream=False, one_shot=True)
+            stats_file.write(f"{stats}\n")
+            stats_file.flush()
+
+
+def log_full_as_csv(container):
+    # TODO simplify column names after flattening
+    sep = ";"
+    with open(f'./stats/{container}_stats.csv', 'w') as stats_file:
+        header_written = False
+        while True:
+            stats = client.api.stats(container=container, decode=None, stream=False, one_shot=True)
+            flattened_stats = flatten(stats)
+            if not header_written:
+                csv_columns = flattened_stats.keys()
+                writer = csv.DictWriter(stats_file, fieldnames=csv_columns, delimiter=sep, extrasaction='ignore')
+                writer.writeheader()
+                header_written = True
+            writer.writerow(flattened_stats)
+            stats_file.flush()
+
+
+def flatten(d, sep="_"):
+    # https://gist.github.com/jhsu98/188df03ec6286ad3a0f30b67cc0b8428
+    import collections
+
+    obj = collections.OrderedDict()
+
+    def recurse(t, parent_key=""):
+
+        if isinstance(t, list):
+            for i in range(len(t)):
+                recurse(t[i], parent_key + sep + str(i) if parent_key else str(i))
+        elif isinstance(t, dict):
+            for k, v in t.items():
+                recurse(v, parent_key + sep + k if parent_key else k)
+        else:
+            obj[parent_key] = t
+
+    recurse(d)
+
+    return obj
 
 
 def calculateCPUPercentUnix(StatsJSON: dict):
@@ -104,9 +150,9 @@ client = docker.from_env()
 containers = client.containers.list()
 
 for c in containers:
-    api_call_loop(c.name)
+    log_full_as_csv(c.name)
 
 with concurrent.futures.ThreadPoolExecutor(max_workers=len(containers)) as executor:
-    futures = [executor.submit(api_call_loop, container.name) for container in containers]
+    futures = [executor.submit(log_full_as_csv, container.name) for container in containers]
 
 # results = [future.result() for future in concurrent.futures.as_completed(futures)]
