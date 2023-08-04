@@ -1,6 +1,7 @@
 import docker
 import concurrent.futures
 import csv
+import collections
 import json
 from os import system
 from time import sleep
@@ -45,9 +46,9 @@ def log_full_as_csv(container):
 
 
 def flatten(d, sep="_"):
-    # https://gist.github.com/jhsu98/188df03ec6286ad3a0f30b67cc0b8428
-    import collections
-
+    '''
+    https://gist.github.com/jhsu98/188df03ec6286ad3a0f30b67cc0b8428
+    '''
     obj = collections.OrderedDict()
 
     def recurse(t, parent_key=""):
@@ -149,8 +150,8 @@ def network_io(StatsJSON: dict):
 client = docker.from_env()
 containers = client.containers.list()
 
-for c in containers:
-    log_full_as_csv(c.name)
+# for c in containers:
+#     log_full_as_csv(c.name)
 
 with concurrent.futures.ThreadPoolExecutor(max_workers=len(containers)) as executor:
     futures = [executor.submit(log_full_as_csv, container.name) for container in containers]
