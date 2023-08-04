@@ -21,7 +21,6 @@ def log_summary(container):
 
 def log_raw(container):
     with open(f'./stats/{container}_stats.log', 'w') as stats_file:
-        stats_file.write("datetime;container_name;CPU%;MEM usage;MEM %;NET IN;NET OUT;BLOCK IN;BLOCK OUT\n")
         while True:
             stats = client.api.stats(container=container, decode=None, stream=False, one_shot=True)
             stats_file.write(f"{stats}\n")
