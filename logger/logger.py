@@ -24,7 +24,7 @@ def log_summary(container, client):
 
 
 def log_raw(container, client):
-    with open(f'./stats/{container}_stats.log', 'w') as stats_file:
+    with open(f'{directory}/{container}_stats.log', 'w') as stats_file:
         while True:
             stats = client.api.stats(container=container, decode=None, stream=False, one_shot=True)
             stats_file.write(f"{stats}\n")
@@ -34,7 +34,7 @@ def log_raw(container, client):
 def log_full_as_csv(container, client):
     # TODO simplify column names after flattening
     sep = ";"
-    with open(f'./stats/{container}_stats.csv', 'w') as stats_file:
+    with open(f'{directory}/{container}_stats.csv', 'w') as stats_file:
         header_written = False
         while True:
             stats = client.api.stats(container=container, decode=None, stream=False, one_shot=True)
