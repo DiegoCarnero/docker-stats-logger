@@ -22,7 +22,7 @@ read;preread;pids_stats_current;blkio_stats_io_service_bytes_recursive_0_major;b
 ### Docker image env
 | Variable| Usage | Default |
 |-|-|-|
-| LOGGING_DIRECTORY | Directory where log files will be stored.| stats_logs/ |
+| LOGGING_DIRECTORY | Directory where log files will be stored.| /usr/src/app/stats_logs/ |
 | LOGGING_INTERVAL  | Interval between log entries in seconds. Due to the Docker API's response time it's impossible to get an interval time below 1 second. | 0 |
 | LOGGING_MODE | Logging mode to use (see above for reference) | full |
 | DOCKER_PROJECT | Project name. Only containers whose name begins with the provided project name will be monitored. Otherwise, all containers will be monitored. | |
@@ -31,3 +31,4 @@ read;preread;pids_stats_current;blkio_stats_io_service_bytes_recursive_0_major;b
 ### TODO
 - [ ] Support/Test on Windows
 - [x] Make docker image
+- [ ] Configure Github Actions
