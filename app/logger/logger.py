@@ -52,7 +52,9 @@ def log_full_as_csv(container, client):
 def api_call(client, container_name_or_id):
     global interval
     global one_shot
-    sleep_interval = max(0, interval - 1)  # -1 to account for the API's minimum delay. Calculating running average would be ideal
+    # -1 second to account for the API's minimum delay, -1 more second if one_shot is enabled.
+    #  Calculating running average would be ideal
+    sleep_interval = max(0, interval - 1 - int(one_shot))
     sleep(sleep_interval)
     return client.api.stats(container=container_name_or_id, decode=None, stream=False, one_shot=one_shot)
 
