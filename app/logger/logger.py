@@ -1,5 +1,5 @@
 import docker
-import concurrent.futures
+from threading import Thread
 import csv
 import logger.utils as utils
 from os import makedirs
@@ -54,6 +54,7 @@ def api_call(client, container_name_or_id):
     global one_shot
     # -1 second to account for the API's minimum delay, -1 more second if one_shot is enabled.
     #  Calculating running average would be ideal
+    print(one_shot, flush=True)
     sleep_interval = max(0, interval - 1 - int(one_shot))
     sleep(sleep_interval)
     return client.api.stats(container=container_name_or_id, decode=None, stream=False, one_shot=one_shot)
@@ -82,9 +83,12 @@ def run(config: dict):
     if project != "":
         directory = f'{directory}/{project}'
     makedirs(directory, exist_ok=True)
-
+    print(one_shot)
     [container_names.append(c.name) for c in containers_all if c.name.startswith(project)]
-
-    with concurrent.futures.ThreadPoolExecutor(max_workers=len(container_names)) as executor:
-        futures = [executor.submit(log_modes.get(mode), container, client) for container in container_names]
-    print("Logging...")
+    if len(container_names) > 0:
+        for containers in container_names:
+            t = Thread(target=log_modes.get(mode, log_full_as_csv), args=[containers, client])
+            t.start()
+        print("Logging...")
+    else:
+        print("No containers found for the project name given. Exiting..")
