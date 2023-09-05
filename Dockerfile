@@ -9,6 +9,6 @@ ENV LOGGING_DIRECTORY=stats_logs
 ENV LOGGING_INTERVAL=1
 ENV LOGGING_MODE=full
 ENV DOCKER_PROJECT=
-ENV LOGGING_ONE_SHOT=true
+ENV LOGGING_ONE_SHOT=false
 
 CMD [ "python", "/usr/src/app/main.py", "-e"]
