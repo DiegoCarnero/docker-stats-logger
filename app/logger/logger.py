@@ -2,7 +2,7 @@ import docker
 from threading import Thread, Event
 import csv
 import logger.utils as utils
-from os import makedirs
+from os import makedirs, chmod
 from time import sleep
 
 
@@ -10,6 +10,12 @@ directory = ""
 project = ""
 interval = 0
 one_shot = False
+
+
+def init_file_with_permission(filename: str):
+    with open(filename, 'w'):
+        pass
+    chmod(filename, 0o644)
 
 
 def sleep_log_interval():
@@ -20,9 +26,14 @@ def sleep_log_interval():
     sleep_interval = max(0, interval - 1 - int(one_shot))
     sleep(sleep_interval)
 
+
 def log_summary(container, client):
     failure_event = Event()
-    with open(f'{directory}/{container}_stats.csv', 'w') as stats_file:
+    log_file_path = f'{directory}/{container}_stats.csv'
+
+    init_file_with_permission(log_file_path)
+
+    with open(log_file_path, 'a') as stats_file:
         stats_file.write("datetime;container_name;CPU%;MEM usage;MEM %;NET IN;NET OUT;BLOCK IN;BLOCK OUT\n")
         while not failure_event.is_set():
             stats = api_call(client, container, failure_event)
@@ -36,7 +47,11 @@ def log_summary(container, client):
 
 def log_raw(container, client):
     failure_event = Event()
-    with open(f'{directory}/{container}_stats.log', 'w') as stats_file:
+    log_file_path = f'{directory}/{container}_stats.log'
+
+    init_file_with_permission(log_file_path)
+
+    with open(f'{directory}/{container}_stats.log', 'a') as stats_file:
         while not failure_event.is_set():
             stats = api_call(client, container, failure_event)
             stats_file.write(f"{stats}\n")
@@ -46,9 +61,13 @@ def log_raw(container, client):
 
 def log_full_as_csv(container, client):
     failure_event = Event()
+    log_file_path = f'{directory}/{container}_stats.csv'
+
+    init_file_with_permission(log_file_path)
+
     # TODO simplify column names after flattening
     sep = ";"
-    with open(f'{directory}/{container}_stats.csv', 'w') as stats_file:
+    with open(log_file_path, 'a') as stats_file:
         header_written = False
         while not failure_event.is_set():
             stats = api_call(client, container, failure_event)
