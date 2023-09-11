@@ -2,7 +2,7 @@ import docker
 from threading import Thread, Event
 import csv
 import logger.utils as utils
-from os import makedirs, chmod
+from os import makedirs, chmod, getenv
 from time import sleep
 
 
@@ -30,6 +30,8 @@ def sleep_log_interval():
 def log_summary(container, client):
     failure_event = Event()
     log_file_path = f'{directory}/{container}_stats.csv'
+    global one_shot
+    one_shot = False
 
     init_file_with_permission(log_file_path)
 
@@ -83,9 +85,16 @@ def log_full_as_csv(container, client):
 
 
 def api_call(client, container_name_or_id, failure_event: Event):
+    global one_shot
     reponse = {}
+    api_call_params = {}
+    if docker.__version__ > '6.0.1':
+        api_call_params = {'container': container_name_or_id, 'decode': None, 'stream': False, 'one_shot': one_shot}
+    else:
+        api_call_params = {'container': container_name_or_id, 'decode': None, 'stream': False}
+        
     try:
-        reponse = client.api.stats(container=container_name_or_id, decode=None, stream=False, one_shot=one_shot)
+        reponse = client.api.stats(**api_call_params)
         if reponse['read'] == '0001-01-01T00:00:00Z':
             print(f"{container_name_or_id} returned most likely erroneous data. Exiting.", flush=True)
             failure_event.set()
@@ -103,6 +112,7 @@ def run(config: dict):
     global interval
     global one_shot
     global project
+    exclude = []
     log_modes = {"summary": log_summary, "full": log_full_as_csv, "raw": log_raw}
 
     if config.get("config_file") is None:
@@ -110,15 +120,15 @@ def run(config: dict):
         directory = config.get("directory", "./stats/")
         mode = config.get("mode", "full")
         interval = config.get("interval", 0)
-        one_shot = config.get("one-shot", False)
-
+        one_shot = bool(config.get("one-shot", 0))
+        exclude = config.get("exclude")
     if mode == 'summary':
         one_shot = False
 
     if project != "":
         directory = f'{directory}/{project}'
     makedirs(directory, exist_ok=True)
-    [container_names.append(c.name) for c in containers_all if c.name.startswith(project)]
+    [container_names.append(c.name) for c in containers_all if c.name.startswith(project) and c.name not in exclude]
     if len(container_names) > 0:
         for containers in container_names:
             t = Thread(target=log_modes.get(mode, log_full_as_csv), args=[containers, client])

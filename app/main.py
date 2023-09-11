@@ -2,6 +2,8 @@ import argparse
 import os
 from logger.logger import run
 import yaml
+from time import sleep
+from distutils.util import strtobool
 
 parser = argparse.ArgumentParser(description="Log Docker's system utilization.",
                                  formatter_class=argparse.ArgumentDefaultsHelpFormatter)
@@ -12,6 +14,8 @@ parser.add_argument("-i", "--interval", help="Interval between log entries in se
 parser.add_argument("-m", "--mode", help='Archive mode. Options: summary, raw, full', default="full")
 parser.add_argument("-o", "--one-shot", help="Improve response time, decreasing the interval between entries. Ignored when using 'summary' logging mode. See Docker API's documentation for more details: https://docs.docker.com/engine/api/v1.43/#tag/Container/operation/ContainerStats", default=True)
 parser.add_argument("-p", "--project_name", help="Project name. Only containers whose name begins with the provided project name will be monitored. Otherwise, all containers will be monitored.", default="")
+parser.add_argument("-ex", "--exclude", nargs='+', help="Names of containers to ignore", default="")
+parser.add_argument("-w", "--wait", help="Seconds to wait before stating. Useful when running as part of a docker compose project to ensure all containers have started.", default=0)
 
 
 if __name__ == "__main__":
@@ -27,7 +31,8 @@ if __name__ == "__main__":
         except ValueError:
             config["interval"] = 1
         config["mode"] = os.getenv("LOGGING_MODE")
-        config["one-shot"] = True if os.getenv("LOGGING_ONE_SHOT").lower == 'true' else False
-        config["project_name"] = os.getenv("DOCKER_PROJECT")
-
+        config["one-shot"] = strtobool(os.getenv("LOGGING_ONE_SHOT"))
+        config["exclude"] = os.getenv("LOGGING_EXCLUDE")
+        config["wait"] = int(os.getenv("LOGGING_WAIT"), 0)
+    sleep(config["wait"])
     run(config)
