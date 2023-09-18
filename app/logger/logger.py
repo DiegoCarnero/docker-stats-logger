@@ -112,7 +112,8 @@ def run(config: dict):
     global interval
     global one_shot
     global project
-    exclude = []
+    includes = []
+    excludes = []
     log_modes = {"summary": log_summary, "full": log_full_as_csv, "raw": log_raw}
 
     if config.get("config_file") is None:
@@ -121,18 +122,23 @@ def run(config: dict):
         mode = config.get("mode", "full")
         interval = config.get("interval", 0)
         one_shot = bool(config.get("one-shot", 0))
-        exclude = config.get("exclude")
+        includes = config.get("include")
+        excludes = config.get("exclude")
     if mode == 'summary':
         one_shot = False
 
     if project != "":
         directory = f'{directory}/{project}'
     makedirs(directory, exist_ok=True)
-    [container_names.append(c.name) for c in containers_all if c.name.startswith(project) and c.name not in exclude]
+
+    if len(includes) == 1 and includes[0] == '':
+        includes = [c.name for c in containers_all]
+
+    [container_names.append(c.name) for c in containers_all if c.name.startswith(project) and c.name in includes and c.name not in excludes]
     if len(container_names) > 0:
         for containers in container_names:
             t = Thread(target=log_modes.get(mode, log_full_as_csv), args=[containers, client])
             t.start()
         print("Logging...")
     else:
-        print("No containers found for the project name given. Exiting..")
+        print("No containers found for the parameters given. Exiting..")
