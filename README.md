@@ -34,3 +34,4 @@ read;preread;pids_stats_current;blkio_stats_io_service_bytes_recursive_0_major;b
 - [ ] Support/Test on Windows
 - [x] Make docker image
 - [ ] Configure Github Actions
+- [ ] Handle new containers and container restarts
